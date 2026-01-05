@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: Competition Engine API
+  version: 1.0.0
+  description: |
+    Stateless bracket generation engine. Receives participants + rules and returns bracket + matches.
+servers:
+  - url: https://engine.example.com
+paths:
+  /v1/brackets/generate:
+    post:
+      summary: Generate a bracket
+      operationId: generateBracket
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+          description: UUID recommended.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateBracketRequest'
+      responses:
+        '200':
+          description: Bracket generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateBracketResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    GenerateBracketRequest:
+      type: object
+      required: [context, rules, participants]
+      properties:
+        context:
+          type: object
+          required: [sport, format]
+          properties:
+            sport:
+              type: string
+              example: judo
+            format:
+              type: string
+              enum: [single_elim]
+            repechage:
+              type: boolean
+              default: true
+            draw_seed:
+              type: string
+              nullable: true
+              description: Deterministic seed for tie-breaks.
+            engine_mode:
+              type: string
+              enum: [deterministic]
+              default: deterministic
+        rules:
+          type: object
+          properties:
+            seeding_mode:
+              type: string
+              enum: [off, auto, manual]
+              default: auto
+            max_seeds:
+              type: integer
+              default: 8
+            seeding_thresholds:
+              type: object
+              properties:
+                min_16:
+                  type: integer
+                  default: 8
+                lt_16:
+                  type: integer
+                  default: 4
+            separate_by:
+              type: array
+              items:
+                type: string
+                enum: [club, nation]
+              default: [club]
+            avoid_rematch_days:
+              type: integer
+              default: 0
+            byes_policy:
+              type: string
+              enum: [prefer_high_seeds]
+              default: prefer_high_seeds
+        participants:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/Participant'
+        history:
+          type: object
+          nullable: true
+          properties:
+            recent_pairs:
+              type: array
+              items:
+                type: object
+                required: [a, b, date]
+                properties:
+                  a: { type: string }
+                  b: { type: string }
+                  date: { type: string, format: date }
+    Participant:
+      type: object
+      required: [athlete_id]
+      properties:
+        athlete_id:
+          type: string
+          description: UUID or any stable string identifier.
+        club_id:
+          type: string
+          nullable: true
+        nation_code:
+          type: string
+          nullable: true
+        ranking_points:
+          type: integer
+          nullable: true
+        seed:
+          type: integer
+          nullable: true
+        meta:
+          type: object
+          nullable: true
+          additionalProperties: true
+    GenerateBracketResponse:
+      type: object
+      required: [engine_version, summary, participants_slots, matches]
+      properties:
+        engine_version:
+          type: string
+          example: 1.0.0
+        summary:
+          type: object
+          required: [participants, size, rounds, byes, repechage]
+          properties:
+            participants: { type: integer }
+            size: { type: integer }
+            rounds: { type: integer }
+            byes: { type: integer }
+            repechage: { type: boolean }
+            quality:
+              type: object
+              nullable: true
+              additionalProperties: true
+        participants_slots:
+          type: array
+          items:
+            type: object
+            required: [athlete_id, slot]
+            properties:
+              athlete_id: { type: string }
+              slot: { type: integer }
+              seed: { type: integer, nullable: true }
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Match'
+        repechage_matches:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RepechageMatch'
+    Match:
+      type: object
+      required: [id, match_type, round, position, is_bye]
+      properties:
+        id: { type: string }
+        match_type: { type: string, enum: [main, final] }
+        round: { type: integer }
+        position: { type: integer }
+        athlete_red: { type: string, nullable: true }
+        athlete_white: { type: string, nullable: true }
+        is_bye: { type: boolean }
+        next_match_id: { type: string, nullable: true }
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+    RepechageMatch:
+      type: object
+      required: [id, match_type, round, position, source_loser_match_id]
+      properties:
+        id: { type: string }
+        match_type: { type: string, enum: [repechage, bronze] }
+        round: { type: integer }
+        position: { type: integer }
+        source_loser_match_id: { type: string }
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true

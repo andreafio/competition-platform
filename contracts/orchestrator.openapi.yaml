@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: Athlos Orchestrator API
+  version: 1.0.0
+  description: |
+    Athlos-specific orchestration API. Prepares divisions, calls Competition Engine, persists results and sends webhooks.
+servers:
+  - url: https://orchestrator.example.com
+paths:
+  /v1/events/{event_id}/generate-all-brackets:
+    post:
+      summary: Prepare divisions and enqueue/generate all brackets for an event
+      operationId: generateAllBrackets
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateAllRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateAllResponse'
+components:
+  schemas:
+    Webhook:
+      type: object
+      required: [url, secret]
+      properties:
+        url:
+          type: string
+        secret:
+          type: string
+    GenerateAllRequest:
+      type: object
+      required: [webhook]
+      properties:
+        webhook:
+          $ref: '#/components/schemas/Webhook'
+        overrides:
+          type: object
+          additionalProperties: true
+    GenerateAllResponse:
+      type: object
+      required: [event_id, divisions_prepared, jobs_enqueued, jobs_skipped]
+      properties:
+        event_id:
+          type: string
+        divisions_prepared:
+          type: boolean
+        jobs_enqueued:
+          type: integer
+        jobs_skipped:
+          type: integer
