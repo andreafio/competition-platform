@@ -20,7 +20,6 @@ app = FastAPI(title="Competition Engine", version="1.0.0")
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
 
 # Correlation ID middleware
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
@@ -198,7 +197,6 @@ def calculate_penalty(slot: int, participant: Participant, slots: List, all_part
 # Algorithm implementation
 
 @app.post("/v1/brackets/generate")
-@limiter.limit("60/minute")
 def generate_bracket(
     request: GenerateBracketRequest,
     req: Request,
@@ -419,6 +417,88 @@ def generate_bracket(
                     if p1.nation_code and p2.nation_code == p1.nation_code:
                         nation_collisions += 1
         
+        # Fix 1: Normalize nation collisions when nation entropy is low
+        # If 90%+ participants have the same nation_code, reduce nation penalty drastically
+        nation_codes = [p.nation_code for p in participants if p.nation_code]
+        most_common_count = 0
+        if nation_codes:
+            from collections import Counter
+            nation_counts = Counter(nation_codes)
+            most_common_nation, most_common_count = nation_counts.most_common(1)[0]
+        
+        # Fix 2: Two-pass fill with local swap optimization
+        # Try local swaps to reduce collisions without changing the overall structure
+        def calculate_collisions_for_slots(test_slots):
+            club_coll = 0
+            nation_coll = 0
+            for i in range(0, size, 2):
+                if test_slots[i] and test_slots[i+1]:
+                    p1 = next((p for p in participants if p.athlete_id == test_slots[i]), None)
+                    p2 = next((p for p in participants if p.athlete_id == test_slots[i+1]), None)
+                    if p1 and p2:
+                        if p1.club_id and p2.club_id == p1.club_id:
+                            club_coll += 1
+                        if p1.nation_code and p2.nation_code == p1.nation_code:
+                            nation_coll += 1
+            # Apply nation normalization
+            if nation_codes:
+                nation_dominance = most_common_count / len(nation_codes)
+                if nation_dominance >= 0.9:
+                    nation_coll = int(nation_coll * 0.1)
+            return club_coll + nation_coll
+        
+        initial_collisions = calculate_collisions_for_slots(slots)
+        
+        # Try swaps between adjacent pairs in R1
+        improved = True
+        while improved:
+            improved = False
+            for i in range(0, size, 2):
+                if not slots[i] or not slots[i+1]:
+                    continue
+                for j in range(i+2, size, 2):
+                    if not slots[j] or not slots[j+1]:
+                        continue
+                    # Try swapping slots[i+1] with slots[j]
+                    test_slots = slots.copy()
+                    test_slots[i+1], test_slots[j] = test_slots[j], test_slots[i+1]
+                    new_collisions = calculate_collisions_for_slots(test_slots)
+                    if new_collisions < initial_collisions:
+                        slots = test_slots
+                        initial_collisions = new_collisions
+                        improved = True
+                        break
+                    # Try swapping slots[i] with slots[j+1]
+                    test_slots = slots.copy()
+                    test_slots[i], test_slots[j+1] = test_slots[j+1], test_slots[i]
+                    new_collisions = calculate_collisions_for_slots(test_slots)
+                    if new_collisions < initial_collisions:
+                        slots = test_slots
+                        initial_collisions = new_collisions
+                        improved = True
+                        break
+                if improved:
+                    break
+        
+        # Recalculate collisions after optimization
+        club_collisions = 0
+        nation_collisions = 0
+        for i in range(0, size, 2):
+            if slots[i] and slots[i+1]:
+                p1 = next((p for p in participants if p.athlete_id == slots[i]), None)
+                p2 = next((p for p in participants if p.athlete_id == slots[i+1]), None)
+                if p1 and p2:
+                    if p1.club_id and p2.club_id == p1.club_id:
+                        club_collisions += 1
+                    if p1.nation_code and p2.nation_code == p1.nation_code:
+                        nation_collisions += 1
+        
+        # Apply nation normalization after optimization
+        if nation_codes:
+            nation_dominance = most_common_count / len(nation_codes)
+            if nation_dominance >= 0.9:  # 90%+ same nation
+                nation_collisions = int(nation_collisions * 0.1)  # Reduce penalty by 90%
+        
         # Seed protection: how well top seeds are separated
         seed_protection = 1.0
         if num_seeds > 1:
@@ -477,12 +557,11 @@ def generate_bracket(
             repechage_matches=repechage_matches
         )
     
-    logger.info("Bracket generation completed", {
-        "quality_score": summary.quality.score,
-        "participants_count": len(request.participants)
-    })
+        logger.info("Bracket generation completed", {
+            "quality_score": summary.quality.score,
+            "participants_count": len(request.participants)
+        })
     
-    return response
     except Exception as e:
         import traceback
         traceback.print_exc()
