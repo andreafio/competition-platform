@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 import hashlib
@@ -87,12 +88,13 @@ class Summary(BaseModel):
     repechage: bool
     quality: Quality
 
-class GenerateBracketResponse(BaseModel):
-    engine_version: str = "1.0.0"
-    summary: Summary
-    participants_slots: List[ParticipantSlot]
-    matches: List[Match]
-    repechage_matches: List[RepechageMatch] = []
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+
+class ErrorResponse(BaseModel):
+    error: ErrorDetail
 
 # Utility functions
 
@@ -140,12 +142,66 @@ def calculate_penalty(slot: int, participant: Participant, slots: List, all_part
 
 # Algorithm implementation
 
-@app.post("/v1/brackets/generate")
+@app.post("/v1/brackets/generate", response_model=GenerateBracketResponse)
 def generate_bracket(
     request: GenerateBracketRequest,
     authorization: str = Header(..., alias="Authorization"),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key")
 ):
+    # Validate authorization
+    if not authorization.startswith("Bearer "):
+        return JSONResponse(
+            status_code=401,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INVALID_AUTHORIZATION",
+                    message="Authorization header must be 'Bearer <key>'",
+                    details={"header": authorization}
+                )
+            ).dict()
+        )
+    token = authorization[7:]
+    if token != "test":  # In production, validate properly
+        return JSONResponse(
+            status_code=401,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INVALID_TOKEN",
+                    message="Invalid API key",
+                    details={"provided": token}
+                )
+            ).dict()
+        )
+
+    # Validate request
+    participants = request.participants
+    if len(participants) < 4:
+        return JSONResponse(
+            status_code=400,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INVALID_PARTICIPANTS_COUNT",
+                    message="Minimum 4 participants required",
+                    details={"count": len(participants)}
+                )
+            ).dict()
+        )
+
+    # Check for duplicate athlete_ids
+    athlete_ids = [p.athlete_id for p in participants]
+    if len(athlete_ids) != len(set(athlete_ids)):
+        duplicates = [x for x in athlete_ids if athlete_ids.count(x) > 1]
+        return JSONResponse(
+            status_code=400,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="DUPLICATE_ATHLETE_IDS",
+                    message="Athlete IDs must be unique",
+                    details={"duplicates": list(set(duplicates))}
+                )
+            ).dict()
+        )
+
     try:
         # Basic auth check (stub)
         if not authorization.startswith("Bearer "):
@@ -304,7 +360,16 @@ def generate_bracket(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INTERNAL_ERROR",
+                    message="An internal error occurred",
+                    details={"error": str(e)}
+                )
+            ).dict()
+        )
 
 @app.get("/health")
 def health():
