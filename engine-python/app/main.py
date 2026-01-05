@@ -11,29 +11,29 @@ app = FastAPI(title="Competition Engine", version="1.0.0")
 # Pydantic Models
 
 class Context(BaseModel):
-    sport: str = Field(..., example="judo")
-    format: Literal["single_elim"]
+    sport: str
+    format: str
     repechage: bool = True
     draw_seed: Optional[str] = None
-    engine_mode: Literal["deterministic"] = "deterministic"
+    engine_mode: str = "deterministic"
 
 class SeedingThresholds(BaseModel):
     min_16: int = 8
     lt_16: int = 4
 
 class Rules(BaseModel):
-    seeding_mode: Literal["off", "auto", "manual"] = "auto"
+    seeding_mode: str = "auto"
     max_seeds: int = 8
     seeding_thresholds: SeedingThresholds = SeedingThresholds()
-    separate_by: List[Literal["club", "nation"]] = ["club"]
+    separate_by: List[str] = ["club"]
     avoid_rematch_days: int = 0
-    byes_policy: Literal["prefer_high_seeds"] = "prefer_high_seeds"
+    byes_policy: str = "prefer_high_seeds"
 
 class Participant(BaseModel):
     athlete_id: str
     club_id: Optional[str] = None
     nation_code: Optional[str] = None
-    ranking_points: int
+    ranking_points: Optional[int] = None
     seed: Optional[int] = None
     meta: Optional[Dict[str, Any]] = None
 
@@ -58,7 +58,7 @@ class ParticipantSlot(BaseModel):
 
 class Match(BaseModel):
     id: str
-    match_type: Literal["main", "final", "bronze"]
+    match_type: str
     round: int
     position: int
     athlete_red: Optional[str] = None
@@ -69,7 +69,7 @@ class Match(BaseModel):
 
 class RepechageMatch(BaseModel):
     id: str
-    match_type: Literal["repechage"]
+    match_type: str
     round: int
     position: int
     source_loser_match_id: str
@@ -146,160 +146,165 @@ def generate_bracket(
     authorization: str = Header(..., alias="Authorization"),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key")
 ):
-    # Basic auth check (stub)
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    
-    # Get draw_seed
-    draw_seed = request.context.draw_seed
-    if not draw_seed:
-        # Compute stable hash
-        data = f"{request.context.sport}{request.context.format}{request.rules.model_dump_json()}{[p.model_dump_json() for p in request.participants]}"
-        draw_seed = stable_hash(data)
-    
-    seeded_random(draw_seed)
-    
-    participants = request.participants
-    n = len(participants)
-    size = next_power_of_two(n)
-    rounds = int(math.log2(size))
-    byes = size - n
-    
-    # Seeding
-    seeds = {}
-    if request.rules.seeding_mode == "manual":
-        for p in participants:
-            if p.seed:
-                if p.seed in seeds:
-                    raise HTTPException(status_code=400, detail="Duplicate seed")
-                seeds[p.seed] = p.athlete_id
-    elif request.rules.seeding_mode == "auto":
-        threshold = request.rules.seeding_thresholds.min_16 if n >= 16 else request.rules.seeding_thresholds.lt_16
-        max_seeds = min(request.rules.max_seeds, threshold)
-        sorted_p = sorted(participants, key=lambda x: x.ranking_points, reverse=True)
-        for i in range(max_seeds):
-            seeds[i+1] = sorted_p[i].athlete_id
-    
-    # Assign slots
-    slots = [None] * size
-    seeded_ids = set(seeds.values())
-    unseeded = [p for p in participants if p.athlete_id not in seeded_ids]
-    
-    # Place seeds using standard positions
-    seed_positions = get_seed_positions(size, len(seeds))
-    for seed_num, athlete_id in seeds.items():
-        if seed_num - 1 < len(seed_positions):
-            slots[seed_positions[seed_num - 1]] = athlete_id
-    
-    # Greedy placement for unseeded
-    available_slots = [i for i in range(size) if slots[i] is None]
-    for p in unseeded:
-        best_slot = min(available_slots, key=lambda slot: calculate_penalty(slot, p, slots, participants, request.rules, request.history))
-        slots[best_slot] = p.athlete_id
-        available_slots.remove(best_slot)
-    
-    # For now, skip advanced greedy scoring, collisions, rematches
-    
-    # Create matches
-    matches = []
-    match_counter = 0
-    def new_match_id():
-        nonlocal match_counter
-        match_counter += 1
-        return f"match-{match_counter}-{draw_seed[:8]}"
-    
-    # Round 1
-    for pos in range(size // 2):
-        m_id = new_match_id()
-        red = slots[pos*2] if pos*2 < len(slots) else None
-        white = slots[pos*2 + 1] if pos*2 + 1 < len(slots) else None
-        is_bye = (red is None or white is None)
-        match_type = "final" if rounds == 1 else "main"
-        matches.append(Match(
-            id=m_id,
-            match_type=match_type,
-            round=1,
-            position=pos+1,
-            athlete_red=red,
-            athlete_white=white,
-            is_bye=is_bye,
-            metadata={"path": f"R1:M{pos+1}"}
-        ))
-    
-    # Subsequent rounds
-    current_round_matches = matches[:]
-    for r in range(2, rounds+1):
-        next_round_matches = []
-        for pos in range(len(current_round_matches) // 2):
+    try:
+        # Basic auth check (stub)
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        
+        # Get draw_seed
+        draw_seed = request.context.draw_seed
+        if not draw_seed:
+            # Compute stable hash
+            data = f"{request.context.sport}{request.context.format}{request.rules.model_dump_json()}{[p.model_dump_json() for p in request.participants]}"
+            draw_seed = stable_hash(data)
+        
+        seeded_random(draw_seed)
+        
+        participants = request.participants
+        n = len(participants)
+        size = next_power_of_two(n)
+        rounds = int(math.log2(size))
+        byes = size - n
+        
+        # Seeding
+        seeds = {}
+        if request.rules.seeding_mode == "manual":
+            for p in participants:
+                if p.seed:
+                    if p.seed in seeds:
+                        raise HTTPException(status_code=400, detail="Duplicate seed")
+                    seeds[p.seed] = p.athlete_id
+        elif request.rules.seeding_mode == "auto":
+            threshold = request.rules.seeding_thresholds.min_16 if n >= 16 else request.rules.seeding_thresholds.lt_16
+            max_seeds = min(request.rules.max_seeds, threshold)
+            sorted_p = sorted(participants, key=lambda x: x.ranking_points or 0, reverse=True)
+            for i in range(max_seeds):
+                seeds[i+1] = sorted_p[i].athlete_id
+        
+        # Assign slots
+        slots = [None] * size
+        seeded_ids = set(seeds.values())
+        unseeded = [p for p in participants if p.athlete_id not in seeded_ids]
+        
+        # Place seeds using standard positions
+        seed_positions = get_seed_positions(size, len(seeds))
+        for seed_num, athlete_id in seeds.items():
+            if seed_num - 1 < len(seed_positions):
+                slots[seed_positions[seed_num - 1]] = athlete_id
+        
+        # Greedy placement for unseeded
+        available_slots = [i for i in range(size) if slots[i] is None]
+        for p in unseeded:
+            best_slot = min(available_slots, key=lambda slot: calculate_penalty(slot, p, slots, participants, request.rules, request.history))
+            slots[best_slot] = p.athlete_id
+            available_slots.remove(best_slot)
+        
+        # For now, skip advanced greedy scoring, collisions, rematches
+        
+        # Create matches
+        matches = []
+        match_counter = 0
+        def new_match_id():
+            nonlocal match_counter
+            match_counter += 1
+            return f"match-{match_counter}-{draw_seed[:8]}"
+        
+        # Round 1
+        for pos in range(size // 2):
             m_id = new_match_id()
-            next_round_matches.append(Match(
+            red = slots[pos*2] if pos*2 < len(slots) else None
+            white = slots[pos*2 + 1] if pos*2 + 1 < len(slots) else None
+            is_bye = (red is None or white is None)
+            match_type = "final" if rounds == 1 else "main"
+            matches.append(Match(
                 id=m_id,
-                match_type="main" if r < rounds else "final",
-                round=r,
+                match_type=match_type,
+                round=1,
                 position=pos+1,
-                metadata={"path": f"R{r}:M{pos+1}"}
+                athlete_red=red,
+                athlete_white=white,
+                is_bye=is_bye,
+                metadata={"path": f"R1:M{pos+1}"}
             ))
-            # Link previous
-            current_round_matches[pos*2].next_match_id = m_id
-            current_round_matches[pos*2 + 1].next_match_id = m_id
-        matches.extend(next_round_matches)
-        current_round_matches = next_round_matches
-    
-    # Repechage (stub)
-    repechage_matches = []
-    if request.context.repechage:
-        # Simple repechage: one round for bronze
-        bronze_match_id = new_match_id()
-        repechage_matches.append(RepechageMatch(
-            id=bronze_match_id,
-            match_type="repechage",
-            round=1,
-            position=1,
-            source_loser_match_id=matches[0].id if matches else None,  # Stub
-            metadata={"path": "REP:R1:M1"}
-        ))
-        # Link to main final
-        if matches and len(matches) > 1:
-            final_match = next((m for m in matches if m.match_type == "final"), None)
-            if final_match:
-                final_match.next_match_id = bronze_match_id  # Not accurate, but placeholder
-    
-    # Participants slots
-    participants_slots = []
-    for slot, athlete_id in enumerate(slots):
-        if athlete_id:
-            seed = next((s for s, aid in seeds.items() if aid == athlete_id), None)
-            participants_slots.append(ParticipantSlot(athlete_id=athlete_id, slot=slot+1, seed=seed))
-    
-    # Quality (stub)
-    club_collisions = 0
-    nation_collisions = 0
-    for i in range(0, size, 2):
-        if slots[i] and slots[i+1]:
-            p1 = next((p for p in participants if p.athlete_id == slots[i]), None)
-            p2 = next((p for p in participants if p.athlete_id == slots[i+1]), None)
-            if p1 and p2:
-                if p1.club_id and p2.club_id == p1.club_id:
-                    club_collisions += 1
-                if p1.nation_code and p2.nation_code == p1.nation_code:
-                    nation_collisions += 1
-    quality = Quality(club_collisions_r1=club_collisions, nation_collisions_r1=nation_collisions)
-    
-    summary = Summary(
-        participants=n,
-        size=size,
-        rounds=rounds,
-        byes=byes,
-        repechage=request.context.repechage,
-        quality=quality
-    )
-    
-    return GenerateBracketResponse(
-        summary=summary,
-        participants_slots=participants_slots,
-        matches=matches,
-        repechage_matches=repechage_matches
-    )
+        
+        # Subsequent rounds
+        current_round_matches = matches[:]
+        for r in range(2, rounds+1):
+            next_round_matches = []
+            for pos in range(len(current_round_matches) // 2):
+                m_id = new_match_id()
+                next_round_matches.append(Match(
+                    id=m_id,
+                    match_type="main" if r < rounds else "final",
+                    round=r,
+                    position=pos+1,
+                    metadata={"path": f"R{r}:M{pos+1}"}
+                ))
+                # Link previous
+                current_round_matches[pos*2].next_match_id = m_id
+                current_round_matches[pos*2 + 1].next_match_id = m_id
+            matches.extend(next_round_matches)
+            current_round_matches = next_round_matches
+        
+        # Repechage (stub)
+        repechage_matches = []
+        if request.context.repechage:
+            # Simple repechage: one round for bronze
+            bronze_match_id = new_match_id()
+            repechage_matches.append(RepechageMatch(
+                id=bronze_match_id,
+                match_type="repechage",
+                round=1,
+                position=1,
+                source_loser_match_id=matches[0].id if matches else None,  # Stub
+                metadata={"path": "REP:R1:M1"}
+            ))
+            # Link to main final
+            if matches and len(matches) > 1:
+                final_match = next((m for m in matches if m.match_type == "final"), None)
+                if final_match:
+                    final_match.next_match_id = bronze_match_id  # Not accurate, but placeholder
+        
+        # Participants slots
+        participants_slots = []
+        for slot, athlete_id in enumerate(slots):
+            if athlete_id:
+                seed = next((s for s, aid in seeds.items() if aid == athlete_id), None)
+                participants_slots.append(ParticipantSlot(athlete_id=athlete_id, slot=slot+1, seed=seed))
+        
+        # Quality (stub)
+        club_collisions = 0
+        nation_collisions = 0
+        for i in range(0, size, 2):
+            if slots[i] and slots[i+1]:
+                p1 = next((p for p in participants if p.athlete_id == slots[i]), None)
+                p2 = next((p for p in participants if p.athlete_id == slots[i+1]), None)
+                if p1 and p2:
+                    if p1.club_id and p2.club_id == p1.club_id:
+                        club_collisions += 1
+                    if p1.nation_code and p2.nation_code == p1.nation_code:
+                        nation_collisions += 1
+        quality = Quality(club_collisions_r1=club_collisions, nation_collisions_r1=nation_collisions)
+        
+        summary = Summary(
+            participants=n,
+            size=size,
+            rounds=rounds,
+            byes=byes,
+            repechage=request.context.repechage,
+            quality=quality
+        )
+        
+        return GenerateBracketResponse(
+            summary=summary,
+            participants_slots=participants_slots,
+            matches=matches,
+            repechage_matches=repechage_matches
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 def health():

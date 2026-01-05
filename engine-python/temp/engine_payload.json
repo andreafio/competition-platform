@@ -1,0 +1,294 @@
+{
+  "context": {
+    "sport": "judo",
+    "format": "single_elim",
+    "repechage": true,
+    "draw_seed": "sha256:a59f782782aa2c2de3e23ea696567e034b6e7def858d87d8ea2f0e495f30825b",
+    "engine_mode": "deterministic"
+  },
+  "rules": {
+    "seeding_mode": "auto",
+    "max_seeds": 8,
+    "seeding_thresholds": {
+      "min_16": 8,
+      "lt_16": 4
+    },
+    "separate_by": [
+      "club"
+    ],
+    "avoid_rematch_days": 0,
+    "byes_policy": "prefer_high_seeds"
+  },
+  "participants": [
+    {
+      "athlete_id": "athlete_0",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 1127,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_1",
+      "club_id": "club_4",
+      "nation_code": "ITA",
+      "ranking_points": null,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_2",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 953,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_3",
+      "club_id": "club_2",
+      "nation_code": "ITA",
+      "ranking_points": 2873,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_4",
+      "club_id": "club_2",
+      "nation_code": "ITA",
+      "ranking_points": 27,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_5",
+      "club_id": "club_3",
+      "nation_code": "ITA",
+      "ranking_points": 637,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_6",
+      "club_id": "club_0",
+      "nation_code": "ITA",
+      "ranking_points": 1471,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_7",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 1882,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_8",
+      "club_id": "club_0",
+      "nation_code": "ITA",
+      "ranking_points": 2575,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_9",
+      "club_id": "club_2",
+      "nation_code": "ITA",
+      "ranking_points": 188,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_10",
+      "club_id": "club_7",
+      "nation_code": "ITA",
+      "ranking_points": 414,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_11",
+      "club_id": "club_3",
+      "nation_code": "ITA",
+      "ranking_points": 1517,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_12",
+      "club_id": "club_1",
+      "nation_code": "ITA",
+      "ranking_points": null,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_13",
+      "club_id": "club_0",
+      "nation_code": "ITA",
+      "ranking_points": 670,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_14",
+      "club_id": "club_7",
+      "nation_code": "ITA",
+      "ranking_points": 2282,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_15",
+      "club_id": "club_5",
+      "nation_code": "ITA",
+      "ranking_points": 939,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_16",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 2324,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_17",
+      "club_id": "club_0",
+      "nation_code": "ITA",
+      "ranking_points": 2634,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_18",
+      "club_id": "club_0",
+      "nation_code": "ITA",
+      "ranking_points": 2208,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_19",
+      "club_id": "club_2",
+      "nation_code": "ITA",
+      "ranking_points": 1483,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_20",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 193,
+      "seed": null,
+      "meta": {
+        "belt": "white"
+      }
+    },
+    {
+      "athlete_id": "athlete_21",
+      "club_id": "club_3",
+      "nation_code": "ITA",
+      "ranking_points": 1730,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_22",
+      "club_id": "club_1",
+      "nation_code": "ITA",
+      "ranking_points": 2168,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_23",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": null,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    },
+    {
+      "athlete_id": "athlete_24",
+      "club_id": "club_4",
+      "nation_code": "ITA",
+      "ranking_points": null,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_25",
+      "club_id": null,
+      "nation_code": "ITA",
+      "ranking_points": 2958,
+      "seed": null,
+      "meta": {
+        "belt": "brown"
+      }
+    },
+    {
+      "athlete_id": "athlete_26",
+      "club_id": "club_6",
+      "nation_code": "ITA",
+      "ranking_points": 2080,
+      "seed": null,
+      "meta": {
+        "belt": "black"
+      }
+    }
+  ]
+}

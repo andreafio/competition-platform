@@ -1,0 +1,8 @@
+pyproject.toml
+app/main.py
+competition_engine.egg-info/PKG-INFO
+competition_engine.egg-info/SOURCES.txt
+competition_engine.egg-info/dependency_links.txt
+competition_engine.egg-info/requires.txt
+competition_engine.egg-info/top_level.txt
+tests/test_main.py

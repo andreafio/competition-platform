@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: competition-engine
+Version: 0.1.0
+Summary: Stateless competition bracket generation engine
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: pydantic>=2.6
+Provides-Extra: test
+Requires-Dist: pytest>=8.0; extra == "test"
+Requires-Dist: hypothesis>=6.0; extra == "test"

@@ -10,6 +10,13 @@ vi.mock('./adapters/persistence.js', () => ({
     ]),
     enqueueJob: vi.fn().mockResolvedValue({ jobId: 'job1', created: true }),
   })),
+  MockAdapter: vi.fn().mockImplementation(() => ({
+    prepareDivisions: vi.fn().mockResolvedValue(undefined),
+    listDivisionsWithCounts: vi.fn().mockResolvedValue([
+      { divisionId: 'div1', code: 'JUDO|MALE|U18|60KG', participants: 8 }
+    ]),
+    enqueueJob: vi.fn().mockResolvedValue({ jobId: 'job1', created: true }),
+  })),
 }));
 
 describe('Orchestrator', () => {

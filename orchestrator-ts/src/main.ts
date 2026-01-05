@@ -1,14 +1,14 @@
 import Fastify from 'fastify';
-import { PostgresAdapter } from './adapters/persistence.js';
+import { MockAdapter, PostgresAdapter } from './adapters/persistence.js';
 import { z } from 'zod';
 
 const app = Fastify({ logger: true });
 
-const dbUrl = process.env.DATABASE_URL || 'postgres://user:pass@localhost:5432/db';
-const adapter = new PostgresAdapter(dbUrl);
+const databaseUrl = process.env.DATABASE_URL;
+const adapter = databaseUrl ? new PostgresAdapter(databaseUrl) : new MockAdapter();
 
-const engineUrl = process.env.ENGINE_BASE_URL || 'http://localhost:8000';
-const engineApiKey = process.env.ENGINE_API_KEY || 'test';
+const engineUrl = process.env.ENGINE_BASE_URL || 'http://localhost:8081';
+const engineApiKey = process.env.ENGINE_API_KEY || 'dev';
 
 // Schemas
 const WebhookSchema = z.object({
@@ -22,7 +22,7 @@ const GenerateAllRequestSchema = z.object({
 });
 
 const GenerateAllResponseSchema = z.object({
-  event_id: z.string(),
+  event_id: z.number(),
   divisions_prepared: z.boolean(),
   jobs_enqueued: z.number(),
   jobs_skipped: z.number(),
@@ -30,7 +30,7 @@ const GenerateAllResponseSchema = z.object({
 
 // Endpoints
 app.post('/v1/events/:eventId/generate-all-brackets', async (request, reply) => {
-  const { eventId } = request.params as { eventId: string };
+  const eventId = parseInt(request.params.eventId);
   const body = GenerateAllRequestSchema.parse(request.body);
 
   // Prepare divisions

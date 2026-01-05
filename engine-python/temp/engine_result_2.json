@@ -1,0 +1,568 @@
+{
+  "engine_version": "1.0.0",
+  "summary": {
+    "participants": 27,
+    "size": 32,
+    "rounds": 5,
+    "byes": 5,
+    "repechage": true,
+    "quality": {
+      "club_collisions_r1": 1,
+      "nation_collisions_r1": 13
+    }
+  },
+  "participants_slots": [
+    {
+      "athlete_id": "athlete_25",
+      "slot": 1,
+      "seed": 1
+    },
+    {
+      "athlete_id": "athlete_16",
+      "slot": 2,
+      "seed": 5
+    },
+    {
+      "athlete_id": "athlete_18",
+      "slot": 3,
+      "seed": 7
+    },
+    {
+      "athlete_id": "athlete_17",
+      "slot": 4,
+      "seed": 3
+    },
+    {
+      "athlete_id": "athlete_8",
+      "slot": 5,
+      "seed": 4
+    },
+    {
+      "athlete_id": "athlete_22",
+      "slot": 6,
+      "seed": 8
+    },
+    {
+      "athlete_id": "athlete_14",
+      "slot": 7,
+      "seed": 6
+    },
+    {
+      "athlete_id": "athlete_3",
+      "slot": 8,
+      "seed": 2
+    },
+    {
+      "athlete_id": "athlete_0",
+      "slot": 9,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_1",
+      "slot": 10,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_2",
+      "slot": 11,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_4",
+      "slot": 12,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_5",
+      "slot": 13,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_6",
+      "slot": 14,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_7",
+      "slot": 15,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_9",
+      "slot": 16,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_10",
+      "slot": 17,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_11",
+      "slot": 18,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_12",
+      "slot": 19,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_13",
+      "slot": 20,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_15",
+      "slot": 21,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_19",
+      "slot": 22,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_20",
+      "slot": 23,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_21",
+      "slot": 24,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_23",
+      "slot": 25,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_24",
+      "slot": 26,
+      "seed": null
+    },
+    {
+      "athlete_id": "athlete_26",
+      "slot": 27,
+      "seed": null
+    }
+  ],
+  "matches": [
+    {
+      "id": "match-1-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 1,
+      "athlete_red": "athlete_25",
+      "athlete_white": "athlete_16",
+      "is_bye": false,
+      "next_match_id": "match-17-sha256:a",
+      "metadata": {
+        "path": "R1:M1"
+      }
+    },
+    {
+      "id": "match-2-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 2,
+      "athlete_red": "athlete_18",
+      "athlete_white": "athlete_17",
+      "is_bye": false,
+      "next_match_id": "match-17-sha256:a",
+      "metadata": {
+        "path": "R1:M2"
+      }
+    },
+    {
+      "id": "match-3-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 3,
+      "athlete_red": "athlete_8",
+      "athlete_white": "athlete_22",
+      "is_bye": false,
+      "next_match_id": "match-18-sha256:a",
+      "metadata": {
+        "path": "R1:M3"
+      }
+    },
+    {
+      "id": "match-4-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 4,
+      "athlete_red": "athlete_14",
+      "athlete_white": "athlete_3",
+      "is_bye": false,
+      "next_match_id": "match-18-sha256:a",
+      "metadata": {
+        "path": "R1:M4"
+      }
+    },
+    {
+      "id": "match-5-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 5,
+      "athlete_red": "athlete_0",
+      "athlete_white": "athlete_1",
+      "is_bye": false,
+      "next_match_id": "match-19-sha256:a",
+      "metadata": {
+        "path": "R1:M5"
+      }
+    },
+    {
+      "id": "match-6-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 6,
+      "athlete_red": "athlete_2",
+      "athlete_white": "athlete_4",
+      "is_bye": false,
+      "next_match_id": "match-19-sha256:a",
+      "metadata": {
+        "path": "R1:M6"
+      }
+    },
+    {
+      "id": "match-7-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 7,
+      "athlete_red": "athlete_5",
+      "athlete_white": "athlete_6",
+      "is_bye": false,
+      "next_match_id": "match-20-sha256:a",
+      "metadata": {
+        "path": "R1:M7"
+      }
+    },
+    {
+      "id": "match-8-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 8,
+      "athlete_red": "athlete_7",
+      "athlete_white": "athlete_9",
+      "is_bye": false,
+      "next_match_id": "match-20-sha256:a",
+      "metadata": {
+        "path": "R1:M8"
+      }
+    },
+    {
+      "id": "match-9-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 9,
+      "athlete_red": "athlete_10",
+      "athlete_white": "athlete_11",
+      "is_bye": false,
+      "next_match_id": "match-21-sha256:a",
+      "metadata": {
+        "path": "R1:M9"
+      }
+    },
+    {
+      "id": "match-10-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 10,
+      "athlete_red": "athlete_12",
+      "athlete_white": "athlete_13",
+      "is_bye": false,
+      "next_match_id": "match-21-sha256:a",
+      "metadata": {
+        "path": "R1:M10"
+      }
+    },
+    {
+      "id": "match-11-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 11,
+      "athlete_red": "athlete_15",
+      "athlete_white": "athlete_19",
+      "is_bye": false,
+      "next_match_id": "match-22-sha256:a",
+      "metadata": {
+        "path": "R1:M11"
+      }
+    },
+    {
+      "id": "match-12-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 12,
+      "athlete_red": "athlete_20",
+      "athlete_white": "athlete_21",
+      "is_bye": false,
+      "next_match_id": "match-22-sha256:a",
+      "metadata": {
+        "path": "R1:M12"
+      }
+    },
+    {
+      "id": "match-13-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 13,
+      "athlete_red": "athlete_23",
+      "athlete_white": "athlete_24",
+      "is_bye": false,
+      "next_match_id": "match-23-sha256:a",
+      "metadata": {
+        "path": "R1:M13"
+      }
+    },
+    {
+      "id": "match-14-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 14,
+      "athlete_red": "athlete_26",
+      "athlete_white": null,
+      "is_bye": true,
+      "next_match_id": "match-23-sha256:a",
+      "metadata": {
+        "path": "R1:M14"
+      }
+    },
+    {
+      "id": "match-15-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 15,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": true,
+      "next_match_id": "match-24-sha256:a",
+      "metadata": {
+        "path": "R1:M15"
+      }
+    },
+    {
+      "id": "match-16-sha256:a",
+      "match_type": "main",
+      "round": 1,
+      "position": 16,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": true,
+      "next_match_id": "match-24-sha256:a",
+      "metadata": {
+        "path": "R1:M16"
+      }
+    },
+    {
+      "id": "match-17-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 1,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-25-sha256:a",
+      "metadata": {
+        "path": "R2:M1"
+      }
+    },
+    {
+      "id": "match-18-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 2,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-25-sha256:a",
+      "metadata": {
+        "path": "R2:M2"
+      }
+    },
+    {
+      "id": "match-19-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 3,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-26-sha256:a",
+      "metadata": {
+        "path": "R2:M3"
+      }
+    },
+    {
+      "id": "match-20-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 4,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-26-sha256:a",
+      "metadata": {
+        "path": "R2:M4"
+      }
+    },
+    {
+      "id": "match-21-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 5,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-27-sha256:a",
+      "metadata": {
+        "path": "R2:M5"
+      }
+    },
+    {
+      "id": "match-22-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 6,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-27-sha256:a",
+      "metadata": {
+        "path": "R2:M6"
+      }
+    },
+    {
+      "id": "match-23-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 7,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-28-sha256:a",
+      "metadata": {
+        "path": "R2:M7"
+      }
+    },
+    {
+      "id": "match-24-sha256:a",
+      "match_type": "main",
+      "round": 2,
+      "position": 8,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-28-sha256:a",
+      "metadata": {
+        "path": "R2:M8"
+      }
+    },
+    {
+      "id": "match-25-sha256:a",
+      "match_type": "main",
+      "round": 3,
+      "position": 1,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-29-sha256:a",
+      "metadata": {
+        "path": "R3:M1"
+      }
+    },
+    {
+      "id": "match-26-sha256:a",
+      "match_type": "main",
+      "round": 3,
+      "position": 2,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-29-sha256:a",
+      "metadata": {
+        "path": "R3:M2"
+      }
+    },
+    {
+      "id": "match-27-sha256:a",
+      "match_type": "main",
+      "round": 3,
+      "position": 3,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-30-sha256:a",
+      "metadata": {
+        "path": "R3:M3"
+      }
+    },
+    {
+      "id": "match-28-sha256:a",
+      "match_type": "main",
+      "round": 3,
+      "position": 4,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-30-sha256:a",
+      "metadata": {
+        "path": "R3:M4"
+      }
+    },
+    {
+      "id": "match-29-sha256:a",
+      "match_type": "main",
+      "round": 4,
+      "position": 1,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-31-sha256:a",
+      "metadata": {
+        "path": "R4:M1"
+      }
+    },
+    {
+      "id": "match-30-sha256:a",
+      "match_type": "main",
+      "round": 4,
+      "position": 2,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-31-sha256:a",
+      "metadata": {
+        "path": "R4:M2"
+      }
+    },
+    {
+      "id": "match-31-sha256:a",
+      "match_type": "final",
+      "round": 5,
+      "position": 1,
+      "athlete_red": null,
+      "athlete_white": null,
+      "is_bye": false,
+      "next_match_id": "match-32-sha256:a",
+      "metadata": {
+        "path": "R5:M1"
+      }
+    }
+  ],
+  "repechage_matches": [
+    {
+      "id": "match-32-sha256:a",
+      "match_type": "repechage",
+      "round": 1,
+      "position": 1,
+      "source_loser_match_id": "match-1-sha256:a",
+      "metadata": {
+        "path": "REP:R1:M1"
+      }
+    }
+  ]
+}
