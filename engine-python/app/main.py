@@ -96,6 +96,13 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     error: ErrorDetail
 
+class GenerateBracketResponse(BaseModel):
+    engine_version: str = "1.0.0"
+    summary: Summary
+    participants_slots: List[ParticipantSlot]
+    matches: List[Match]
+    repechage_matches: List[RepechageMatch] = []
+
 # Utility functions
 
 def next_power_of_two(n: int) -> int:
@@ -142,7 +149,7 @@ def calculate_penalty(slot: int, participant: Participant, slots: List, all_part
 
 # Algorithm implementation
 
-@app.post("/v1/brackets/generate", response_model=GenerateBracketResponse)
+@app.post("/v1/brackets/generate")
 def generate_bracket(
     request: GenerateBracketRequest,
     authorization: str = Header(..., alias="Authorization"),
