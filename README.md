@@ -19,6 +19,15 @@ Repo con **due servizi**:
 - Engine: `uvicorn app.main:app --reload`
 - Orchestrator: `npm run dev`
 
+## Eseguire con Docker
+```bash
+docker-compose up --build
+```
+Servizi disponibili:
+- Engine: http://localhost:8000
+- Orchestrator: http://localhost:3001
+- DB: postgres://user:pass@localhost:5432/athlos
+
 ## Contratti
 - Engine OpenAPI: `contracts/engine.openapi.yaml`
 - Orchestrator OpenAPI: `contracts/orchestrator.openapi.yaml`

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  engine:
+    build: ./engine-python
+    ports:
+      - "8000:8000"
+    environment:
+      - ENGINE_API_KEY=test
+      - ENGINE_VERSION=1.0.0
+
+  orchestrator:
+    build: ./orchestrator-ts
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgres://user:pass@db:5432/athlos
+      - ENGINE_BASE_URL=http://engine:8000
+      - ENGINE_API_KEY=test
+      - WORKER_POLL_INTERVAL_MS=1000
+    depends_on:
+      - engine
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=athlos
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
