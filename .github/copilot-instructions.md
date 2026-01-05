@@ -20,3 +20,8 @@
 - Scrivi test automatizzati (pytest per Engine, vitest/jest per Orchestrator).
 - Preferisci tipi espliciti, gestione errori e logging strutturato.
 - Mantieni backward compatibility dei contratti in `contracts/`.
+
+## Regola d'oro 🚨
+- **NESSUNA modifica al generatore entra in main se non passa `validate_all.sh`**.
+- Prima di ogni commit/merge in main: esegui `bash validate_all.sh` e verifica che tutti i test passino.
+- Se un test fallisce, risolvi il problema prima di procedere con il merge.
