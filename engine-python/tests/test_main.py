@@ -107,3 +107,29 @@ def test_auto_seeding():
     slots = data["participants_slots"]
     seeded = [s for s in slots if s["seed"]]
     assert len(seeded) == 2
+
+def test_quality_score():
+    request_data = {
+        "context": {"sport": "judo", "format": "single_elim", "repechage": False},
+        "rules": {"seeding_mode": "auto", "max_seeds": 4},
+        "participants": [
+            {"athlete_id": "a1", "ranking_points": 100, "club_id": "c1", "nation_code": "ITA"},
+            {"athlete_id": "a2", "ranking_points": 90, "club_id": "c2", "nation_code": "FRA"},
+            {"athlete_id": "a3", "ranking_points": 80, "club_id": "c1", "nation_code": "ITA"},
+            {"athlete_id": "a4", "ranking_points": 70, "club_id": "c3", "nation_code": "ESP"}
+        ],
+        "history": {"recent_pairs": []}
+    }
+    response = client.post("/v1/brackets/generate", json=request_data, headers={"Authorization": "Bearer test"})
+    assert response.status_code == 200
+    data = response.json()
+    quality = data["summary"]["quality"]
+    assert "score" in quality
+    assert isinstance(quality["score"], int)
+    assert 0 <= quality["score"] <= 100
+    assert "club_collisions_r1" in quality
+    assert "nation_collisions_r1" in quality
+    assert "seed_protection" in quality
+    assert "bye_fairness" in quality
+    assert isinstance(quality["seed_protection"], float)
+    assert isinstance(quality["bye_fairness"], float)

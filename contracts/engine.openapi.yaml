@@ -100,6 +100,18 @@ components:
               type: string
               enum: [prefer_high_seeds]
               default: prefer_high_seeds
+            penalties:
+              type: object
+              properties:
+                same_club_r1:
+                  type: integer
+                  default: 1000
+                same_nation_r1:
+                  type: integer
+                  default: 600
+                rematch_recent:
+                  type: integer
+                  default: 400
         participants:
           type: array
           minItems: 2
@@ -161,6 +173,15 @@ components:
               type: object
               nullable: true
               additionalProperties: true
+            penalties:
+              type: object
+              properties:
+                same_club_r1:
+                  type: integer
+                same_nation_r1:
+                  type: integer
+                rematch_recent:
+                  type: integer
         participants_slots:
           type: array
           items:

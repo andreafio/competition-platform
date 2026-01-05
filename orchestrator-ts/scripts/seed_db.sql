@@ -44,10 +44,62 @@ CREATE TABLE IF NOT EXISTS bracket_jobs (
     webhook_secret TEXT,
     overrides JSONB,
     status TEXT,
+    lifecycle_status TEXT DEFAULT 'draft', -- draft, ready, locked, completed
+    locked_by TEXT,
+    locked_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     data JSONB
+);
+
+-- Dead letter queue for failed webhooks
+CREATE TABLE IF NOT EXISTS webhook_dead_letters (
+    id SERIAL PRIMARY KEY,
+    job_id INTEGER REFERENCES bracket_jobs(id),
+    webhook_url TEXT,
+    payload JSONB,
+    error_message TEXT,
+    retry_count INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Brackets
+CREATE TABLE IF NOT EXISTS brackets (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER,
+    division_id INTEGER,
+    engine_result JSONB,
+    lifecycle_status TEXT DEFAULT 'draft', -- draft, ready, locked, completed
+    locked_by TEXT,
+    locked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bracket participants
+CREATE TABLE IF NOT EXISTS bracket_participants (
+    bracket_id INTEGER REFERENCES brackets(id),
+    athlete_id INTEGER,
+    slot INTEGER,
+    seed INTEGER,
+    PRIMARY KEY (bracket_id, athlete_id)
+);
+
+-- Matches
+CREATE TABLE IF NOT EXISTS matches (
+    id SERIAL PRIMARY KEY,
+    bracket_id INTEGER REFERENCES brackets(id),
+    match_id TEXT,
+    match_type TEXT,
+    round INTEGER,
+    position INTEGER,
+    athlete_red TEXT,
+    athlete_white TEXT,
+    is_bye BOOLEAN DEFAULT FALSE,
+    next_match_id TEXT,
+    source_loser_match_id TEXT,
+    metadata JSONB,
+    status TEXT DEFAULT 'scheduled' -- scheduled, in_progress, completed
 );
 
 -- Insert test data

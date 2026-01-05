@@ -1,13 +1,51 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import hashlib
 import random
 import math
 import uuid
+import time
+import logging
 
 app = FastAPI(title="Competition Engine", version="1.0.0")
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Correlation ID middleware
+class CorrelationIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        correlation_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
+        request.state.correlation_id = correlation_id
+        response = await call_next(request)
+        response.headers["X-Request-Id"] = correlation_id
+        return response
+
+app.add_middleware(CorrelationIdMiddleware)
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO, format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "correlation_id": "%(correlation_id)s", "message": "%(message)s"}')
+
+class CorrelationLogger:
+    def __init__(self, correlation_id: str):
+        self.correlation_id = correlation_id
+        self.logger = logging.getLogger(__name__)
+
+    def info(self, message: str, extra: dict = None):
+        self.logger.info(message, extra={"correlation_id": self.correlation_id, **(extra or {})})
+
+    def error(self, message: str, extra: dict = None):
+        self.logger.error(message, extra={"correlation_id": self.correlation_id, **(extra or {})})
 
 # Pydantic Models
 
@@ -22,6 +60,11 @@ class SeedingThresholds(BaseModel):
     min_16: int = 8
     lt_16: int = 4
 
+class Penalties(BaseModel):
+    same_club_r1: int = 1000
+    same_nation_r1: int = 600
+    rematch_recent: int = 400
+
 class Rules(BaseModel):
     seeding_mode: str = "auto"
     max_seeds: int = 8
@@ -29,6 +72,7 @@ class Rules(BaseModel):
     separate_by: List[str] = ["club"]
     avoid_rematch_days: int = 0
     byes_policy: str = "prefer_high_seeds"
+    penalties: Penalties = Penalties()
 
 class Participant(BaseModel):
     athlete_id: str
@@ -77,8 +121,11 @@ class RepechageMatch(BaseModel):
     metadata: Dict[str, Any] = {}
 
 class Quality(BaseModel):
+    score: int
     club_collisions_r1: int = 0
     nation_collisions_r1: int = 0
+    seed_protection: float
+    bye_fairness: float
 
 class Summary(BaseModel):
     participants: int
@@ -87,6 +134,7 @@ class Summary(BaseModel):
     byes: int
     repechage: bool
     quality: Quality
+    penalties: Penalties
 
 class ErrorDetail(BaseModel):
     code: str
@@ -136,25 +184,36 @@ def calculate_penalty(slot: int, participant: Participant, slots: List, all_part
         if opponent:
             # Club collision
             if rules.separate_by and 'club' in rules.separate_by and participant.club_id and opponent.club_id == participant.club_id:
-                penalty += 1000
+                penalty += rules.penalties.same_club_r1
             # Nation collision
             if rules.separate_by and 'nation' in rules.separate_by and participant.nation_code and opponent.nation_code == participant.nation_code:
-                penalty += 100
+                penalty += rules.penalties.same_nation_r1
             # Rematch
             for pair in history.recent_pairs:
                 if (pair.a == participant.athlete_id and pair.b == opponent.athlete_id) or (pair.a == opponent.athlete_id and pair.b == participant.athlete_id):
                     # Check date
-                    penalty += 50
+                    penalty += rules.penalties.rematch_recent
     return penalty
 
 # Algorithm implementation
 
 @app.post("/v1/brackets/generate")
+@limiter.limit("60/minute")
 def generate_bracket(
     request: GenerateBracketRequest,
+    req: Request,
     authorization: str = Header(..., alias="Authorization"),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key")
 ):
+    correlation_id = getattr(req.state, 'correlation_id', 'unknown')
+    logger = CorrelationLogger(correlation_id)
+    
+    logger.info("Bracket generation started", {
+        "participants_count": len(request.participants),
+        "sport": request.context.sport,
+        "idempotency_key": idempotency_key
+    })
+
     # Validate authorization
     if not authorization.startswith("Bearer "):
         return JSONResponse(
@@ -168,7 +227,7 @@ def generate_bracket(
             ).dict()
         )
     token = authorization[7:]
-    if token != "test":  # In production, validate properly
+    if token not in ["test", "dev"]:  # Accept both for development
         return JSONResponse(
             status_code=401,
             content=ErrorResponse(
@@ -189,7 +248,18 @@ def generate_bracket(
                 error=ErrorDetail(
                     code="INVALID_PARTICIPANTS_COUNT",
                     message="Minimum 4 participants required",
-                    details={"count": len(participants)}
+                    details={"count": len(participants), "min": 4}
+                )
+            ).dict()
+        )
+    if len(participants) > 256:
+        return JSONResponse(
+            status_code=400,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INVALID_PARTICIPANTS_COUNT",
+                    message="Maximum 256 participants allowed",
+                    details={"count": len(participants), "max": 256}
                 )
             ).dict()
         )
@@ -335,7 +405,8 @@ def generate_bracket(
                 seed = next((s for s, aid in seeds.items() if aid == athlete_id), None)
                 participants_slots.append(ParticipantSlot(athlete_id=athlete_id, slot=slot+1, seed=seed))
         
-        # Quality (stub)
+        # Quality
+        num_seeds = len(seeds)
         club_collisions = 0
         nation_collisions = 0
         for i in range(0, size, 2):
@@ -347,7 +418,47 @@ def generate_bracket(
                         club_collisions += 1
                     if p1.nation_code and p2.nation_code == p1.nation_code:
                         nation_collisions += 1
-        quality = Quality(club_collisions_r1=club_collisions, nation_collisions_r1=nation_collisions)
+        
+        # Seed protection: how well top seeds are separated
+        seed_protection = 1.0
+        if num_seeds > 1:
+            # Check if top 2 seeds are not in same half
+            top_seeds = sorted(seeds.items(), key=lambda x: x[0])[:min(4, num_seeds)]  # Sort by seed_num ascending
+            positions = [slots.index(aid) for _, aid in top_seeds if aid in slots]
+            if len(positions) > 1:
+                # Simple: if top 2 are in different halves
+                half = size // 2
+                top1_half = positions[0] < half
+                top2_half = positions[1] < half
+                if top1_half != top2_half:
+                    seed_protection = 1.0
+                else:
+                    seed_protection = 0.5  # Penalty if same half
+        
+        # Bye fairness: if byes exist, are they fair?
+        bye_fairness = 1.0
+        if byes > 0:
+            # Simple: assume fair if byes are at the end
+            bye_positions = [i for i, s in enumerate(slots) if s is None]
+            if bye_positions:
+                # If byes are consecutive at the end, fair
+                expected_byes = list(range(size - byes, size))
+                if bye_positions == expected_byes:
+                    bye_fairness = 1.0
+                else:
+                    bye_fairness = 0.8  # Slight penalty
+        
+        # Overall score: 100 - penalties + bonuses
+        collision_penalty = (club_collisions + nation_collisions) * 5  # 5 points per collision
+        score = max(0, min(100, 100 - collision_penalty + int(seed_protection * 10) + int(bye_fairness * 10)))
+        
+        quality = Quality(
+            score=score,
+            club_collisions_r1=club_collisions,
+            nation_collisions_r1=nation_collisions,
+            seed_protection=seed_protection,
+            bye_fairness=bye_fairness
+        )
         
         summary = Summary(
             participants=n,
@@ -355,7 +466,8 @@ def generate_bracket(
             rounds=rounds,
             byes=byes,
             repechage=request.context.repechage,
-            quality=quality
+            quality=quality,
+            penalties=request.rules.penalties
         )
         
         return GenerateBracketResponse(
@@ -364,6 +476,13 @@ def generate_bracket(
             matches=matches,
             repechage_matches=repechage_matches
         )
+    
+    logger.info("Bracket generation completed", {
+        "quality_score": summary.quality.score,
+        "participants_count": len(request.participants)
+    })
+    
+    return response
     except Exception as e:
         import traceback
         traceback.print_exc()

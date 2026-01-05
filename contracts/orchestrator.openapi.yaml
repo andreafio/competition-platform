@@ -30,6 +30,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenerateAllResponse'
+  /v1/events/{event_id}/divisions/{division_id}/lock-bracket:
+    post:
+      summary: Lock a bracket to prevent regeneration
+      operationId: lockBracket
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: division_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bracket locked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event_id:
+                    type: string
+                  division_id:
+                    type: string
+                  locked:
+                    type: boolean
+  /v1/events/{event_id}/divisions/{division_id}/bracket:
+    get:
+      summary: Get the current bracket
+      operationId: getBracket
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: division_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bracket data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Bracket not found
+  /v1/events/{event_id}/divisions/{division_id}/preview-bracket:
+    post:
+      summary: Preview bracket generation with diff
+      operationId: previewBracket
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: division_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                overrides:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Preview with diff
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event_id:
+                    type: integer
+                  division_id:
+                    type: integer
+                  old_bracket:
+                    type: object
+                    nullable: true
+                  new_bracket:
+                    type: object
+                  diff:
+                    type: object
 components:
   schemas:
     Webhook:

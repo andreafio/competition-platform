@@ -37,6 +37,23 @@ export interface PersistenceAdapter {
   markJob(jobId: number, status: JobStatus, data?: any): Promise<void>;
   saveEngineResult(params: { eventId: number; divisionId: number; engineResult: any }): Promise<{ bracketId: number }>;
   isBracketLocked(eventId: number, divisionId: number): Promise<boolean>;
+  lockBracket(eventId: number, divisionId: number, lockedBy: string): Promise<void>;
+  getBracketLifecycleStatus(eventId: number, divisionId: number): Promise<string | null>;
+  getBracket(eventId: number, divisionId: number): Promise<any | null>;
+  markStuckJobsAsFailed(maxAgeMs: number): Promise<void>;
+  saveDeadLetter(params: {
+    jobId: number;
+    webhookUrl: string;
+    payload: any;
+    errorMessage: string;
+    retryCount: number;
+  }): Promise<void>;
+  getMetrics(): Promise<{
+    jobsSuccess: number;
+    jobsFailed: number;
+    engineLatencyP95: number;
+    qualityScoreAvg: number;
+  }>;
 }
 
 import { Pool } from 'pg';
@@ -75,6 +92,11 @@ export class MockAdapter implements PersistenceAdapter {
     webhookSecret: string;
     overrides: any;
   }): Promise<{ jobId: number; created: boolean }> {
+    // Check if bracket is locked
+    if (await this.isBracketLocked(params.eventId, params.divisionId)) {
+      throw new Error('Bracket is locked and cannot be regenerated');
+    }
+
     const existing = this.jobs.find(j => j.eventId === params.eventId && j.divisionId === params.divisionId && ['queued', 'running', 'success'].includes(j.status));
     if (existing) {
       return { jobId: parseInt(existing.jobId), created: false };
@@ -115,12 +137,62 @@ export class MockAdapter implements PersistenceAdapter {
 
   async saveEngineResult(params: { eventId: number; divisionId: number; engineResult: any }): Promise<{ bracketId: number }> {
     const bracketId = this.brackets.length + 1;
-    this.brackets.push({ ...params, bracketId });
+    this.brackets.push({ ...params, bracketId, lifecycle_status: 'ready' });
     return { bracketId };
   }
 
   async isBracketLocked(eventId: number, divisionId: number): Promise<boolean> {
-    return false;
+    const bracket = this.brackets.find(b => b.eventId === eventId && b.divisionId === divisionId);
+    return bracket ? ['locked', 'completed'].includes(bracket.lifecycle_status) : false;
+  }
+
+  async lockBracket(eventId: number, divisionId: number, lockedBy: string): Promise<void> {
+    const bracket = this.brackets.find(b => b.eventId === eventId && b.divisionId === divisionId);
+    if (bracket && bracket.lifecycle_status === 'ready') {
+      bracket.lifecycle_status = 'locked';
+      bracket.locked_by = lockedBy;
+      bracket.locked_at = new Date();
+    }
+  }
+
+  async getBracketLifecycleStatus(eventId: number, divisionId: number): Promise<string | null> {
+    const bracket = this.brackets.find(b => b.eventId === eventId && b.divisionId === divisionId);
+    return bracket ? bracket.lifecycle_status : null;
+  }
+
+  async getBracket(eventId: number, divisionId: number): Promise<any | null> {
+    const bracket = this.brackets.find(b => b.eventId === eventId && b.divisionId === divisionId);
+    return bracket ? bracket.engineResult : null;
+  }
+
+  async markStuckJobsAsFailed(maxAgeMs: number): Promise<void> {
+    // Mock implementation - do nothing
+  }
+
+  async saveDeadLetter(params: {
+    jobId: number;
+    webhookUrl: string;
+    payload: any;
+    errorMessage: string;
+    retryCount: number;
+  }): Promise<void> {
+    // Mock implementation - just log
+    console.log('Dead letter saved:', params);
+  }
+
+  async getMetrics(): Promise<{
+    jobsSuccess: number;
+    jobsFailed: number;
+    engineLatencyP95: number;
+    qualityScoreAvg: number;
+  }> {
+    // Mock metrics
+    return {
+      jobsSuccess: 95,
+      jobsFailed: 5,
+      engineLatencyP95: 250,
+      qualityScoreAvg: 85
+    };
   }
 }
 
@@ -188,6 +260,16 @@ export class PostgresAdapter implements PersistenceAdapter {
     webhookSecret: string;
     overrides: any;
   }): Promise<{ jobId: string; created: boolean }> {
+    // Check if bracket is locked
+    const lockedQuery = `
+      SELECT id FROM brackets 
+      WHERE event_id = $1 AND division_id = $2 AND lifecycle_status IN ('locked', 'completed')
+    `;
+    const locked = await this.pool.query(lockedQuery, [params.eventId, params.divisionId]);
+    if (locked.rows.length > 0) {
+      throw new Error('Bracket is locked and cannot be regenerated');
+    }
+
     const existingQuery = `
       SELECT id FROM bracket_jobs 
       WHERE event_id = $1 AND division_id = $2 AND status IN ('queued', 'running', 'success')
@@ -252,8 +334,8 @@ export class PostgresAdapter implements PersistenceAdapter {
 
   async saveEngineResult(params: { eventId: string; divisionId: string; engineResult: any }): Promise<{ bracketId: string }> {
     const insertBracketQuery = `
-      INSERT INTO brackets (event_id, division_id, engine_result, created_at)
-      VALUES ($1, $2, $3, NOW())
+      INSERT INTO brackets (event_id, division_id, engine_result, lifecycle_status, created_at)
+      VALUES ($1, $2, $3, 'ready', NOW())
       RETURNING id
     `;
     const bracketResult = await this.pool.query(insertBracketQuery, [
@@ -294,10 +376,109 @@ export class PostgresAdapter implements PersistenceAdapter {
   async isBracketLocked(eventId: string, divisionId: string): Promise<boolean> {
     const query = `
       SELECT locked FROM brackets 
-      WHERE event_id = $1 AND division_id = $2 AND locked = true
+      WHERE event_id = $1 AND division_id = $2 AND lifecycle_status IN ('locked', 'completed')
       LIMIT 1
     `;
     const result = await this.pool.query(query, [eventId, divisionId]);
     return result.rows.length > 0;
+  }
+
+  async lockBracket(eventId: string, divisionId: string, lockedBy: string): Promise<void> {
+    const updateQuery = `
+      UPDATE brackets 
+      SET lifecycle_status = 'locked', locked_by = $3, locked_at = NOW()
+      WHERE event_id = $1 AND division_id = $2 AND lifecycle_status = 'ready'
+    `;
+    await this.pool.query(updateQuery, [eventId, divisionId, lockedBy]);
+  }
+
+  async getBracketLifecycleStatus(eventId: string, divisionId: string): Promise<string | null> {
+    const query = `
+      SELECT lifecycle_status FROM brackets 
+      WHERE event_id = $1 AND division_id = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const result = await this.pool.query(query, [eventId, divisionId]);
+    return result.rows.length > 0 ? result.rows[0].lifecycle_status : null;
+  }
+
+  async getBracket(eventId: string, divisionId: string): Promise<any | null> {
+    const query = `
+      SELECT engine_result FROM brackets 
+      WHERE event_id = $1 AND division_id = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const result = await this.pool.query(query, [eventId, divisionId]);
+    return result.rows.length > 0 ? result.rows[0].engine_result : null;
+  }
+
+  async markStuckJobsAsFailed(maxAgeMs: number): Promise<void> {
+    const query = `
+      UPDATE bracket_jobs 
+      SET status = 'failed', completed_at = NOW()
+      WHERE status = 'running' 
+      AND started_at < NOW() - INTERVAL '${maxAgeMs} milliseconds'
+    `;
+    await this.pool.query(query);
+  }
+
+  async saveDeadLetter(params: {
+    jobId: number;
+    webhookUrl: string;
+    payload: any;
+    errorMessage: string;
+    retryCount: number;
+  }): Promise<void> {
+    const query = `
+      INSERT INTO webhook_dead_letters (job_id, webhook_url, payload, error_message, retry_count)
+      VALUES ($1, $2, $3, $4, $5)
+    `;
+    await this.pool.query(query, [
+      params.jobId,
+      params.webhookUrl,
+      JSON.stringify(params.payload),
+      params.errorMessage,
+      params.retryCount
+    ]);
+  }
+
+  async getMetrics(): Promise<{
+    jobsSuccess: number;
+    jobsFailed: number;
+    engineLatencyP95: number;
+    qualityScoreAvg: number;
+  }> {
+    // Jobs success/fail count
+    const jobsQuery = `
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'success') as success_count,
+        COUNT(*) FILTER (WHERE status = 'failed') as failed_count
+      FROM bracket_jobs
+      WHERE created_at > NOW() - INTERVAL '24 hours'
+    `;
+    const jobsResult = await this.pool.query(jobsQuery);
+    const jobsSuccess = parseInt(jobsResult.rows[0].success_count) || 0;
+    const jobsFailed = parseInt(jobsResult.rows[0].failed_count) || 0;
+
+    // Engine latency p95 (mock for now - would need actual timing data)
+    const engineLatencyP95 = 250; // ms
+
+    // Quality score average
+    const qualityQuery = `
+      SELECT AVG((engine_result->'summary'->>'quality_score')::float) as avg_quality
+      FROM brackets
+      WHERE created_at > NOW() - INTERVAL '24 hours'
+    `;
+    const qualityResult = await this.pool.query(qualityQuery);
+    const qualityScoreAvg = parseFloat(qualityResult.rows[0].avg_quality) || 0;
+
+    return {
+      jobsSuccess,
+      jobsFailed,
+      engineLatencyP95,
+      qualityScoreAvg
+    };
   }
 }
